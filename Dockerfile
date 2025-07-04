@@ -1,11 +1,20 @@
 # Use the official n8n image
 FROM n8nio/n8n:latest
 
+# Switch to root to install dependencies
+USER root
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Switch back to node user
+USER node
+
 # Set the working directory
 WORKDIR /home/node/.n8n
 
 # Copy workflows
-COPY workflows/ ./workflows/
+COPY --chown=node:node workflows/ ./workflows/
 
 # Set environment variables for production
 ENV N8N_PROTOCOL=http
@@ -27,6 +36,10 @@ ENV EXECUTIONS_DATA_SAVE_ON_ERROR=all
 ENV EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
 ENV EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
 ENV N8N_LOG_LEVEL=info
+ENV N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=false
+
+# Ensure the n8n binary is in PATH
+ENV PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
 # Expose the port
 EXPOSE 5678
@@ -35,5 +48,5 @@ EXPOSE 5678
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:5678/healthz || exit 1
 
-# Start n8n
-CMD ["n8n", "start"]
+# Start n8n using the full path
+CMD ["/usr/local/bin/n8n", "start"]
