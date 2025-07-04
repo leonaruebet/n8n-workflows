@@ -29,7 +29,9 @@ Ensure these files are in your repository:
 
 ## 🌐 Step 2: Deploy to Koyeb
 
-### Option A: Using Koyeb Web Dashboard
+> 💡 **Recommended**: Use Option A (Web Dashboard) for easier setup
+
+### Option A: Using Koyeb Web Dashboard (Recommended)
 
 1. **Connect GitHub**:
    - Go to [Koyeb Dashboard](https://app.koyeb.com)
@@ -52,7 +54,7 @@ N8N_PORT=5678
 N8N_BASIC_AUTH_ACTIVE=true
 N8N_BASIC_AUTH_USER=admin
 N8N_BASIC_AUTH_PASSWORD=YourSecurePassword123!
-WEBHOOK_URL=https://your-app-name.koyeb.app/
+WEBHOOK_URL=https://ireadcustomer-news.koyeb.app/
 GENERIC_TIMEZONE=Asia/Bangkok
 N8N_METRICS=true
 N8N_LOG_LEVEL=info
@@ -62,7 +64,7 @@ EXECUTIONS_DATA_SAVE_ON_SUCCESS=all
 EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
 ```
 
-### Option B: Using Koyeb CLI
+### Option B: Using Koyeb CLI (Manual Setup)
 
 1. **Install Koyeb CLI**:
 ```bash
@@ -78,9 +80,33 @@ curl -fsSL https://cli.koyeb.com/install.sh | sh
 koyeb login
 ```
 
-3. **Deploy**:
+3. **Create App via CLI**:
 ```bash
-koyeb app deploy -f koyeb.yaml
+# Create the app
+koyeb app create ireadcustomer-n8n-workflows
+
+# Deploy service (replace YOUR_GITHUB_USERNAME with your actual username)
+koyeb service create ireadcustomer-n8n-workflows/n8n \
+  --type git \
+  --git-repository github.com/leonaruebet/n8n-workflows \
+  --git-branch main \
+  --git-build-command "docker build -f n8n.Dockerfile -t n8n-app ." \
+  --instance-type free \
+  --port 5678 \
+  --route / \
+  --env N8N_PROTOCOL=http \
+  --env N8N_HOST=0.0.0.0 \
+  --env N8N_PORT=5678 \
+  --env N8N_BASIC_AUTH_ACTIVE=true \
+  --env N8N_BASIC_AUTH_USER=admin \
+  --env N8N_BASIC_AUTH_PASSWORD=YourSecurePassword123! \
+  --env GENERIC_TIMEZONE=Asia/Bangkok \
+  --env N8N_METRICS=true \
+  --env N8N_LOG_LEVEL=info \
+  --env EXECUTIONS_PROCESS=main \
+  --env EXECUTIONS_DATA_SAVE_ON_ERROR=all \
+  --env EXECUTIONS_DATA_SAVE_ON_SUCCESS=all \
+  --env EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS=true
 ```
 
 ## 🔐 Step 3: Configure Secrets
