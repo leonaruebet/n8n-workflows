@@ -1,0 +1,362 @@
+{
+  "id": "discord_perplexity_workflow",
+  "meta": {
+    "instanceId": "9219ebc7795bea866f70aa3d977d54417fdf06c41944be95e20cfb60f992db19",
+    "templateCredsSetupCompleted": true
+  },
+  "name": "Multi-Agent AI: Topic Finder + News Writer for Discord",
+  "tags": ["automation", "ai", "discord", "news", "reddit", "social-media", "multi-agent"],
+  "nodes": [
+    {
+      "id": "9b2fdc0f-8c71-4ea9-a9d0-df470f2778df",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [-560, 0],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4,
+              "triggerAtMinute": "={{Math.floor(Math.random() * 60)}}"
+            }
+          ]
+        }
+      },
+      "typeVersion": 1.2
+    },
+    {
+      "id": "content-theme-selector",
+      "name": "Content Theme Selector",
+      "type": "n8n-nodes-base.set",
+      "position": [-360, 0],
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "themes-array",
+              "name": "contentThemes",
+              "type": "array",
+              "value": ["AI and artificial intelligence", "business trends", "marketing strategies", "data science", "startup news"]
+            },
+            {
+              "id": "selected-theme",
+              "name": "selectedTheme",
+              "type": "string",
+              "value": "={{$json.contentThemes[Math.floor(Math.random() * $json.contentThemes.length)]}}"
+            },
+            {
+              "id": "search-sources",
+              "name": "searchSources",
+              "type": "string",
+              "value": "Reddit, Twitter, LinkedIn, social media discussions"
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4
+    },
+    {
+      "id": "d549c019-1f3e-4758-a5ee-e4ac7e03cc2d",
+      "name": "Dynamic Search Query",
+      "type": "n8n-nodes-base.set",
+      "position": [-180, 0],
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dynamic-search",
+              "name": "searchInput",
+              "type": "string",
+              "value": "=What are the latest trending discussions about {{$('Content Theme Selector').item.json.selectedTheme}} on {{$('Content Theme Selector').item.json.searchSources}}? Focus on popular posts and conversations from the last 24 hours."
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4
+    },
+    {
+      "id": "c1ed633d-d318-403c-9577-c3c63ac2e68e",
+      "name": "API Configuration",
+      "type": "n8n-nodes-base.set",
+      "position": [20, 0],
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4f9bd3a0-5587-410f-b145-a287f65f9576",
+              "name": "perplexityAPI",
+              "type": "string",
+              "value": "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"
+            },
+            {
+              "id": "webhook-url-id",
+              "name": "discordWebhookUrl",
+              "type": "string",
+              "value": "https://discord.com/api/webhooks/1390748170446700688/nnAG5HNpr83TFxRTJQIgEOrZAVt5Ziar_Xx_yxo5cSsepFHR3inpdaoabqg06yLpljVz"
+            },
+            {
+              "id": "gemini-api-id",
+              "name": "geminiAPI",
+              "type": "string",
+              "value": "AIzaSyDOU426Vcb-K4cZxYru1oimUxl1YyMlQ0M"
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4
+    },
+    {
+      "id": "87c28d43-6cd6-4292-a563-a9f22467e162",
+      "name": "Perplexity Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [200, 0],
+      "parameters": {
+        "url": "https://api.perplexity.ai/chat/completions",
+        "method": "POST",
+        "options": {},
+        "jsonBody": "={\n  \"model\": \"llama-3.1-sonar-small-128k-online\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a social media and Reddit content researcher. Find the most interesting and trending content from Reddit, Twitter, LinkedIn and other social platforms. Focus on viral posts, popular discussions, and trending topics. Provide comprehensive information including post content, engagement metrics, source links, and brief summaries for each topic found.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $('Dynamic Search Query').item.json.searchInput }}\"\n    }\n  ],\n  \"temperature\": 0.4,\n  \"top_p\": 0.9,\n  \"return_citations\": true,\n  \"search_domain_filter\": [\n    \"reddit.com\",\n    \"twitter.com\",\n    \"linkedin.com\",\n    \"x.com\"\n  ],\n  \"search_recency_filter\": \"day\",\n  \"return_images\": false,\n  \"return_related_questions\": false,\n  \"max_tokens\": 400,\n  \"stream\": false,\n  \"presence_penalty\": 0,\n  \"frequency_penalty\": 0.3\n}",
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('API Configuration').item.json.perplexityAPI }}"
+            }
+          ]
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "gemini-topic-finder",
+      "name": "🔍 Gemini Topic Finder",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [380, 0],
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent",
+        "method": "POST",
+        "options": {},
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"คุณเป็น Topic Finder Agent ที่เชี่ยวชาญในการวิเคราะห์เนื้อหาจาก Social Media และหาหัวข้อที่น่าสนใจ\\n\\nงานของคุณ: วิเคราะห์ข้อมูลต่อไปนี้และสกัดหัวข้อข่าวที่น่าสนใจออกมา 3-5 หัวข้อ\\n\\nรูปแบบ Output ที่ต้องการ (JSON Array เท่านั้น):\\n[\\n  {\\n    \\\"topic\\\": \\\"หัวข้อข่าวที่ 1\\\",\\n    \\\"source_platform\\\": \\\"Reddit/Twitter/LinkedIn\\\",\\n    \\\"engagement\\\": \\\"จำนวน upvotes/likes\\\",\\n    \\\"original_link\\\": \\\"ลิงก์ต้นฉบับ\\\",\\n    \\\"summary\\\": \\\"สรุปสั้นๆ ของเนื้อหา\\\"\\n  }\\n]\\n\\nข้อมูลที่ต้องวิเคราะห์:\\n{{ $('Perplexity Search').item.json.choices[0].message.content }}\"\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"temperature\": 0.3,\n    \"topK\": 20,\n    \"topP\": 0.8,\n    \"maxOutputTokens\": 600\n  }\n}",
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $('API Configuration').item.json.geminiAPI }}"
+            }
+          ]
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "parse-topics",
+      "name": "Parse Topics",
+      "type": "n8n-nodes-base.set",
+      "position": [560, 0],
+      "parameters": {
+        "options": {},
+        "assignments": {
+          "assignments": [
+            {
+              "id": "parsed-topics",
+              "name": "topics",
+              "type": "array",
+              "value": "={{ JSON.parse($('🔍 Gemini Topic Finder').item.json.candidates[0].content.parts[0].text.replace(/```json\\n?|```/g, '').trim()) }}"
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4
+    },
+    {
+      "id": "split-topics",
+      "name": "Split Topics",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [740, 0],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "typeVersion": 3
+    },
+    {
+      "id": "gemini-news-writer",
+      "name": "✍️ Gemini News Writer",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [920, 0],
+      "parameters": {
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent",
+        "method": "POST",
+        "options": {},
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"คุณคือ Content Creator ของบริษัท iReadCustomer - Startup DataTech\\n\\nMISSION: เขียนข่าวเทคโนโลยีภาษาไทยคุณภาพสูงสำหรับ Discord\\n\\nGUIDELINES:\\n1. เปิดด้วยประเด็นสำคัญ (Headline + Lead): หัวข้อสั้น ≤ 60 อักษร และย่อหน้าแรกสรุป \\\"ใคร ทำ อะไร ที่ไหน เมื่อไร ทำไม อย่างไร\\\" ภายใน 40 คำ\\n2. ใช้โครงสร้าง \\\"Inverted Pyramid\\\": เรียงข้อมูลจากสำคัญที่สุดไปน้อยที่สุด\\n3. ภาษาเรียบง่าย แต่แม่นยำ: เลือกคำสามัญ เลี่ยงศัพท์เทคนิค ถ้าจำเป็นต้องใช้ให้ใส่คำอธิบายสั้น\\n4. ใช้เสียง Active Voice: ตรงไปตรงมา อ่านลื่น สร้างความเร่งด่วน\\n5. เชื่อมโยงผลกระทบกับผู้อ่าน: อธิบายว่าเหตุการณ์นี้ส่งผลต่อผู้อ่านอย่างไร\\n6. ปิดท้ายด้วย Call-to-Action: กระตุ้นให้คลิก/อ่านต่อ\\n\\nข้อมูลหัวข้อ:\\nหัวข้อ: {{ $('Parse Topics').item.json.topics[$('Split Topics').context.noItemsLeft ? $('Split Topics').context.currentRunIndex - 1 : $('Split Topics').context.currentRunIndex].topic }}\\nแหล่งที่มา: {{ $('Parse Topics').item.json.topics[$('Split Topics').context.noItemsLeft ? $('Split Topics').context.currentRunIndex - 1 : $('Split Topics').context.currentRunIndex].source_platform }}\\nความนิยม: {{ $('Parse Topics').item.json.topics[$('Split Topics').context.noItemsLeft ? $('Split Topics').context.currentRunIndex - 1 : $('Split Topics').context.currentRunIndex].engagement }}\\nลิงก์: {{ $('Parse Topics').item.json.topics[$('Split Topics').context.noItemsLeft ? $('Split Topics').context.currentRunIndex - 1 : $('Split Topics').context.currentRunIndex].original_link }}\\nสรุป: {{ $('Parse Topics').item.json.topics[$('Split Topics').context.noItemsLeft ? $('Split Topics').context.currentRunIndex - 1 : $('Split Topics').context.currentRunIndex].summary }}\\n\\nFORMAT:\\n🔥 **[Headline ≤ 60 อักษร]**\\n\\n📰 **Lead:** [สรุป 5W1H ภายใน 40 คำ]\\n\\n💡 **รายละเอียด:** [ข้อมูลสำคัญเรียงตามลำดับความสำคัญ 2-3 ประโยค]\\n\\n🎯 **ผลกระทบ:** [อธิบายความสำคัญต่อผู้อ่าน 1-2 ประโยค]\\n\\n📱 **แหล่ง:** [แหล่งที่มา] | 👥 **ความนิยม:** [ความนิยม]\\n\\n👆 **อ่านต่อ:** [ลิงก์]\\n\\n**#iReadCustomer #DataTech** [+ แฮชแท็กที่เกี่ยวข้อง 2-3 ตัว จาก #เทคโนโลยี #AI #ธุรกิจ #การตลาด #ข้อมูล #สตาร์ทอัพ #ข่าวเด็ด]\""\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"temperature\": 0.8,\n    \"topK\": 40,\n    \"topP\": 0.95,\n    \"maxOutputTokens\": 400\n  }\n}",
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "json",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "={{ $('API Configuration').item.json.geminiAPI }}"
+            }
+          ]
+        }
+      },
+      "typeVersion": 4.2
+    },
+    {
+      "id": "e228e352-2ddd-4e2c-a434-993910ced7be",
+      "name": "Post to Discord",
+      "type": "n8n-nodes-base.discord",
+      "position": [1100, 0],
+      "parameters": {
+        "resource": "message",
+        "operation": "post",
+        "webhookUrl": "={{ $('API Configuration').item.json.discordWebhookUrl }}",
+        "text": "={{ $('✍️ Gemini News Writer').item.json.candidates[0].content.parts[0].text }}",
+        "options": {
+          "username": "📊 iReadCustomer DataTech News",
+          "avatar_url": "https://api.dicebear.com/7.x/bottts/svg?seed=multi-agent-bot"
+        }
+      },
+      "typeVersion": 2
+    }
+  ],
+  "active": true,
+  "pinData": {},
+  "settings": {
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionOrder": "v1"
+  },
+  "versionId": "74e316fe-561f-4c80-b446-bba795654cef",
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Content Theme Selector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Theme Selector": {
+      "main": [
+        [
+          {
+            "node": "Dynamic Search Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dynamic Search Query": {
+      "main": [
+        [
+          {
+            "node": "API Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API Configuration": {
+      "main": [
+        [
+          {
+            "node": "Perplexity Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perplexity Search": {
+      "main": [
+        [
+          {
+            "node": "🔍 Gemini Topic Finder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "🔍 Gemini Topic Finder": {
+      "main": [
+        [
+          {
+            "node": "Parse Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Topics": {
+      "main": [
+        [
+          {
+            "node": "Split Topics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Topics": {
+      "main": [
+        [
+          {
+            "node": "✍️ Gemini News Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "✍️ Gemini News Writer": {
+      "main": [
+        [
+          {
+            "node": "Post to Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Discord": {
+      "main": [
+        []
+      ]
+    }
+  }
+}

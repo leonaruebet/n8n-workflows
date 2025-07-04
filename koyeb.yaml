@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ireadcustomer-n8n-workflows
+spec:
+  definition:
+    name: ireadcustomer-n8n-workflows
+    regions:
+      - fra
+    app:
+      name: ireadcustomer-n8n-workflows
+      services:
+        - name: n8n
+          git:
+            repository: github.com/your-username/n8n-workflows
+            branch: main
+            build_command: docker build -f n8n.Dockerfile -t n8n-app .
+          instance_types:
+            - free
+          ports:
+            - port: 5678
+              protocol: http
+          routes:
+            - path: /
+              port: 5678
+          env:
+            - key: N8N_PROTOCOL
+              value: http
+            - key: N8N_HOST
+              value: 0.0.0.0
+            - key: N8N_PORT
+              value: "5678"
+            - key: N8N_BASIC_AUTH_ACTIVE
+              value: "true"
+            - key: N8N_BASIC_AUTH_USER
+              value: admin
+            - key: N8N_BASIC_AUTH_PASSWORD
+              value: "changeThisPassword123!"
+            - key: WEBHOOK_URL
+              value: https://ireadcustomer-n8n-workflows-your-app-id.koyeb.app/
+            - key: GENERIC_TIMEZONE
+              value: Asia/Bangkok
+            - key: N8N_METRICS
+              value: "true"
+            - key: N8N_DIAGNOSTICS_ENABLED
+              value: "false"
+            - key: N8N_VERSION_NOTIFICATIONS_ENABLED
+              value: "false"
+            - key: N8N_TEMPLATES_ENABLED
+              value: "false"
+            - key: N8N_ONBOARDING_FLOW_DISABLED
+              value: "true"
+            - key: N8N_DISABLE_UI
+              value: "false"
+            - key: N8N_LOG_LEVEL
+              value: info
+            - key: EXECUTIONS_PROCESS
+              value: main
+            - key: EXECUTIONS_DATA_SAVE_ON_ERROR
+              value: all
+            - key: EXECUTIONS_DATA_SAVE_ON_SUCCESS
+              value: all
+            - key: EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS
+              value: "true"
+          health_checks:
+            http:
+              - path: /healthz
+                port: 5678
+          scaling:
+            min: 1
+            max: 1
